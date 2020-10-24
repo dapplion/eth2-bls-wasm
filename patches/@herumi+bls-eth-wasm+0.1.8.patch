@@ -85,10 +85,10 @@ index 51ac539..9d0572c 100644
      })
    }
 diff --git a/node_modules/@herumi/bls-eth-wasm/test.js b/node_modules/@herumi/bls-eth-wasm/test.js
-index 3322279..924362d 100644
+index 3322279..ee3113a 100644
 --- a/node_modules/@herumi/bls-eth-wasm/test.js
 +++ b/node_modules/@herumi/bls-eth-wasm/test.js
-@@ -17,6 +17,7 @@ const curveTest = (curveType, name) => {
+@@ -17,10 +17,11 @@ const curveTest = (curveType, name) => {
          shareTest()
          addTest()
          ethTest()
@@ -96,6 +96,11 @@ index 3322279..924362d 100644
          console.log('all ok')
          benchAll()
        } catch (e) {
+-        console.log(`TEST FAIL ${e}`)
++        console.log("TEST FAIL", e)
+         assert(false)
+       }
+     })
 @@ -63,6 +64,16 @@ function serializeTest () {
    serializeSubTest(id, bls.Id)
  }
