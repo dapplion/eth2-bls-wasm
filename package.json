@@ -14,7 +14,8 @@
   "scripts": {
     "build": "./build.sh",
     "test": "node dist/test.js",
-    "update-submodule": "git submodule update"
+    "update-submodule": "git submodule update",
+    "update-diff": "yarn patch-package @herumi/bls-eth-wasm"
   },
   "repository": {
     "type": "git",

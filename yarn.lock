@@ -674,7 +674,7 @@
     core-js "2.6.10"
     require-resolve "0.0.2"
 
-"@herumi/bls-eth-wasm@file:./bls-eth-wasm":
+"@herumi/bls-eth-wasm@file:./bls-eth-wasm-upstream":
   version "0.1.8"
 
 "@yarnpkg/lockfile@^1.1.0":

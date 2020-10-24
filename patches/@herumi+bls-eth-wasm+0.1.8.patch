@@ -1,30 +1,14 @@
 diff --git a/node_modules/@herumi/bls-eth-wasm/bls.js b/node_modules/@herumi/bls-eth-wasm/bls.js
-index 51ac539..a09d696 100644
+index 51ac539..9d0572c 100644
 --- a/node_modules/@herumi/bls-eth-wasm/bls.js
 +++ b/node_modules/@herumi/bls-eth-wasm/bls.js
-@@ -1,11 +1,16 @@
+@@ -1,3 +1,5 @@
 +import wasmCode from './bls_c.wasm';
 +
  (generator => {
--  if (typeof window === 'object') {
--    const exports = {}
--    window.bls = generator(exports, false)
-+  if (typeof exports === 'object') {
-+    const crypto = require('crypto')
-+    crypto.getRandomValues = crypto.randomFillSync
-+    generator(exports, crypto, true)
-   } else {
--    generator(exports, true)
-+    const crypto = window.crypto || window.msCrypto
-+    const exports = {}
-+    window.bls = generator(exports, crypto, false)
-   }
--})((exports, isNodeJs) => {
-+})((exports, crypto, isNodeJs) => {
-   /* eslint-disable */
-   exports.BN254 = 0
-   exports.BN381_1 = 1
-@@ -181,6 +186,10 @@
+   if (typeof window === 'object') {
+     const exports = {}
+@@ -181,6 +183,10 @@
      exports.blsInit = (curveType = exports.ethMode ? exports.BLS12_381 : exports.BN254) => {
        const r = mod._blsInit(curveType, MCLBN_COMPILED_TIME_VAR)
        if (r) throw ('blsInit err ' + r)
@@ -35,7 +19,7 @@ index 51ac539..a09d696 100644
      }
      exports.getCurveOrder = _wrapGetStr(mod._blsGetCurveOrder)
      exports.getFieldOrder = _wrapGetStr(mod._blsGetFieldOrder)
-@@ -227,6 +236,11 @@
+@@ -227,6 +233,11 @@
        clear () {
          this.a_.fill(0)
        }
@@ -47,56 +31,38 @@ index 51ac539..a09d696 100644
        // alloc new array
        _alloc () {
          return _malloc(this.a_.length * 4)
-@@ -395,7 +409,7 @@
-       }
-       setByCSPRNG () {
-         const a = new Uint8Array(BLS_SECRETKEY_SIZE)
--        exports.getRandomValues(a)
-+        crypto.getRandomValues(a)
-         this.setLittleEndian(a)
-       }
-       getPublicKey () {
-@@ -641,35 +655,27 @@
+@@ -641,35 +652,31 @@
      exports.curveType = curveType
      const name = 'bls_c'
      return new Promise(resolve => {
 -      if (isNodeJs) {
--        const crypto = require('crypto')
--        exports.getRandomValues = crypto.randomFillSync
--        const path = require('path')
--        const js = require(`./${name}.js`)
 +      const wasmBinary = Buffer.from(wasmCode, "binary");
 +      try {
-+        const js = require("./".concat(name, ".js"));
-+
+         const crypto = require('crypto')
+         exports.getRandomValues = crypto.randomFillSync
+-        const path = require('path')
+         const js = require(`./${name}.js`)
          const Module = {
 -          cryptoGetRandomValues : _cryptoGetRandomValues,
 -          locateFile: baseName => { return path.join(__dirname, baseName) }
+-        }
 +          cryptoGetRandomValues: _cryptoGetRandomValues,
 +          wasmBinary: wasmBinary,
 +        };
-+        js(Module).then(_mod => {
-+          exports.mod = _mod;
-+          setup(exports, exports.curveType);
-+          resolve();
-+        });
-+      } catch (e) {
-+        exports.mod = Module()
-+        exports.mod.cryptoGetRandomValues = _cryptoGetRandomValues
-+        exports.mod.wasmBinary = wasmBinary;
-+        exports.mod.onRuntimeInitialized = () => {
-+          setup(exports, exports.curveType)
-+          resolve()
-         }
--        js(Module)
--          .then(_mod => {
+         js(Module)
+           .then(_mod => {
 -            exports.mod = _mod
 -            setup(exports, curveType)
 -            resolve()
 -          })
 -      } else {
--        const crypto = window.crypto || window.msCrypto
--        exports.getRandomValues = x => crypto.getRandomValues(x)
++            exports.mod = _mod;
++            setup(exports, exports.curveType);
++            resolve();
++          });
++      } catch (e) {
+         const crypto = window.crypto || window.msCrypto
+         exports.getRandomValues = x => crypto.getRandomValues(x)
 -        fetch(`./${name}.wasm`) // eslint-disable-line
 -          .then(response => response.arrayBuffer())
 -          .then(buffer => new Uint8Array(buffer))
@@ -108,6 +74,13 @@ index 51ac539..a09d696 100644
 -              resolve()
 -            }
 -          })
++        exports.mod = Module()
++        exports.mod.cryptoGetRandomValues = _cryptoGetRandomValues
++        exports.mod.wasmBinary = wasmBinary;
++        exports.mod.onRuntimeInitialized = () => {
++          setup(exports, exports.curveType)
++          resolve()
++        }
        }
      })
    }
