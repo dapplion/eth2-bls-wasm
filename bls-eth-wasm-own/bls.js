@@ -240,12 +240,6 @@ import wasmCode from './bls_c.wasm';
     exports.blsSign = _wrapInput(mod._blsSign, 2)
     exports.blsVerify = _wrapInput(mod._blsVerify, 2, true)
 
-    // <<<<<<< herumi/bls-eth-wasm
-    // =======
-    exports.shouldVerifyBlsSignatureOrder = _wrapInput(mod._blsSignatureVerifyOrder, 0);
-    exports.shouldVerifyBlsPublicKeyOrder = _wrapInput(mod._blsPublicKeyVerifyOrder, 0);
-    // >>>>>>> chainsafe/eth2-bls-wasm
-
     class Common {
       constructor (size) {
         this.a_ = new Uint32Array(size / 4)
