@@ -1,0 +1,167 @@
+diff --git a/node_modules/@herumi/bls-eth-wasm/bls.js b/node_modules/@herumi/bls-eth-wasm/bls.js
+index 51ac539..77ceb4d 100644
+--- a/node_modules/@herumi/bls-eth-wasm/bls.js
++++ b/node_modules/@herumi/bls-eth-wasm/bls.js
+@@ -1,11 +1,16 @@
++import wasmCode from './bls_c.wasm';
++
+ (generator => {
+-  if (typeof window === 'object') {
+-    const exports = {}
+-    window.bls = generator(exports, false)
++  if (typeof exports === 'object') {
++    const crypto = require('crypto')
++    crypto.getRandomValues = crypto.randomFillSync
++    generator(exports, crypto, true)
+   } else {
+-    generator(exports, true)
++    const crypto = window.crypto || window.msCrypto
++    const exports = {}
++    window.bls = generator(exports, crypto, false)
+   }
+-})((exports, isNodeJs) => {
++})((exports, crypto, isNodeJs) => {
+   /* eslint-disable */
+   exports.BN254 = 0
+   exports.BN381_1 = 1
+@@ -181,6 +186,10 @@
+     exports.blsInit = (curveType = exports.ethMode ? exports.BLS12_381 : exports.BN254) => {
+       const r = mod._blsInit(curveType, MCLBN_COMPILED_TIME_VAR)
+       if (r) throw ('blsInit err ' + r)
++
++      //https://github.com/herumi/bls/blob/master/include/bls/bls.h#L106
++      const r2 = mod._blsSetETHmode(3);
++      if (r2) throw ('blsSetEthMode err ' + r2)
+     }
+     exports.getCurveOrder = _wrapGetStr(mod._blsGetCurveOrder)
+     exports.getFieldOrder = _wrapGetStr(mod._blsGetFieldOrder)
+@@ -211,6 +220,9 @@
+     exports.blsSign = _wrapInput(mod._blsSign, 2)
+     exports.blsVerify = _wrapInput(mod._blsVerify, 2, true)
+ 
++    exports.shouldVerifyBlsSignatureOrder = _wrapInput(mod._blsSignatureVerifyOrder, 0);
++    exports.shouldVerifyBlsPublicKeyOrder = _wrapInput(mod._blsPublicKeyVerifyOrder, 0);
++
+     class Common {
+       constructor (size) {
+         this.a_ = new Uint32Array(size / 4)
+@@ -227,6 +239,11 @@
+       clear () {
+         this.a_.fill(0)
+       }
++      clone() {
++        const copy = new this.constructor();
++        copy.a_ = this.a_.slice(0);
++        return copy;
++      }
+       // alloc new array
+       _alloc () {
+         return _malloc(this.a_.length * 4)
+@@ -395,7 +412,7 @@
+       }
+       setByCSPRNG () {
+         const a = new Uint8Array(BLS_SECRETKEY_SIZE)
+-        exports.getRandomValues(a)
++        crypto.getRandomValues(a)
+         this.setLittleEndian(a)
+       }
+       getPublicKey () {
+@@ -641,35 +658,27 @@
+     exports.curveType = curveType
+     const name = 'bls_c'
+     return new Promise(resolve => {
+-      if (isNodeJs) {
+-        const crypto = require('crypto')
+-        exports.getRandomValues = crypto.randomFillSync
+-        const path = require('path')
+-        const js = require(`./${name}.js`)
++      const wasmBinary = Buffer.from(wasmCode, "binary");
++      try {
++        const js = require("./".concat(name, ".js"));
++
+         const Module = {
+-          cryptoGetRandomValues : _cryptoGetRandomValues,
+-          locateFile: baseName => { return path.join(__dirname, baseName) }
++          cryptoGetRandomValues: _cryptoGetRandomValues,
++          wasmBinary: wasmBinary,
++        };
++        js(Module).then(_mod => {
++          exports.mod = _mod;
++          setup(exports, exports.curveType);
++          resolve();
++        });
++      } catch (e) {
++        exports.mod = Module()
++        exports.mod.cryptoGetRandomValues = _cryptoGetRandomValues
++        exports.mod.wasmBinary = wasmBinary;
++        exports.mod.onRuntimeInitialized = () => {
++          setup(exports, exports.curveType)
++          resolve()
+         }
+-        js(Module)
+-          .then(_mod => {
+-            exports.mod = _mod
+-            setup(exports, curveType)
+-            resolve()
+-          })
+-      } else {
+-        const crypto = window.crypto || window.msCrypto
+-        exports.getRandomValues = x => crypto.getRandomValues(x)
+-        fetch(`./${name}.wasm`) // eslint-disable-line
+-          .then(response => response.arrayBuffer())
+-          .then(buffer => new Uint8Array(buffer))
+-          .then(() => {
+-            exports.mod = Module() // eslint-disable-line
+-            exports.mod.cryptoGetRandomValues = _cryptoGetRandomValues
+-            exports.mod.onRuntimeInitialized = () => {
+-              setup(exports, curveType)
+-              resolve()
+-            }
+-          })
+       }
+     })
+   }
+diff --git a/node_modules/@herumi/bls-eth-wasm/test.js b/node_modules/@herumi/bls-eth-wasm/test.js
+index 3322279..180f2da 100644
+--- a/node_modules/@herumi/bls-eth-wasm/test.js
++++ b/node_modules/@herumi/bls-eth-wasm/test.js
+@@ -17,6 +17,7 @@ const curveTest = (curveType, name) => {
+         shareTest()
+         addTest()
+         ethTest()
++        serializeUncompressedTest()
+         console.log('all ok')
+         benchAll()
+       } catch (e) {
+@@ -41,10 +42,11 @@ function serializeSubTest (t, Cstr) {
+ }
+ 
+ function serializeUncompressedSubTest (t, Cstr) {
+-  const b = t.serializeUncompressed()
++  const s = t.serializeUncompressedToHexStr()
+   const t2 = new Cstr()
+-  t2.deserializeUncompressed(b)
+-  assert(t.isEqual(t2))
++  t2.deserializeUncompressedHexStr(s)
++  assert.deepEqual(t.serialize(), t2.serialize())
++  
+ }
+ 
+ function serializeTest () {
+@@ -63,6 +65,16 @@ function serializeTest () {
+   serializeSubTest(id, bls.Id)
+ }
+ 
++function serializeUncompressedTest () {
++  const sec = new bls.SecretKey()
++  sec.setByCSPRNG()
++  const pub = sec.getPublicKey()
++  serializeUncompressedSubTest(pub, bls.PublicKey)
++  const msg = 'abc'
++  const sig = sec.sign(msg)
++  serializeUncompressedSubTest(sig, bls.Signature)
++}
++
+ function zeroTest () {
+   let sec = new bls.SecretKey()
+   assert(sec.isZero())

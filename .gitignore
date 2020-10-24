@@ -3,6 +3,9 @@ node_modules
 .idea
 .vscode
 
+# Diff result
+bls-eth-wasm-modified
+
 # EMCC build files
-bls-eth-wasm/bls_c.js
-bls-eth-wasm/bls_c.wasm
+bls-eth-wasm*/bls_c.js
+bls-eth-wasm*/bls_c.wasm

@@ -16,7 +16,8 @@
     "build": "cd bls && make clean && make bls-eth-wasm && yarn run build:lib",
     "prebuild:lib": "rm -rf dist",
     "build:lib": "babel bls-eth-wasm -d dist --copy-files",
-    "test": "node dist/test.js"
+    "test": "node dist/test.js",
+    "postinstall": "patch-package && cp -r node_modules/@herumi/bls-eth-wasm bls-eth-wasm-modified"
   },
   "repository": {
     "type": "git",
@@ -41,7 +42,9 @@
     "@babel/core": "^7.7.5",
     "@babel/preset-env": "^7.7.6",
     "@chainsafe/babel-plugin-inline-binary-import": "^1.0.3",
+    "@herumi/bls-eth-wasm": "file:./bls-eth-wasm",
     "assert": "^2.0.0",
+    "patch-package": "^6.2.2",
     "standard": "^10.0.3"
   },
   "dependencies": {
