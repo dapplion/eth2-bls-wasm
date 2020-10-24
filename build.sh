@@ -22,6 +22,7 @@ cp bls-eth-wasm/bls_c.wasm $LIB_DIR
 yarn patch-package
 cp node_modules/@herumi/bls-eth-wasm/bls.js $LIB_DIR
 cp node_modules/@herumi/bls-eth-wasm/test.js $LIB_DIR
+cp types/* $LIB_DIR
 
 # Step 3: Inline WASM code to bls.js for easy distribution of the package
 yarn babel $LIB_DIR -d $DIST_DIR --copy-files
