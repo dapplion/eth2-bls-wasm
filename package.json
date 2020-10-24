@@ -12,12 +12,8 @@
     "dist"
   ],
   "scripts": {
-    "prebuild": "rm -f bls-eth-wasm/bls_c.js && rm -f bls-eth-wasm/bls_c.wasm",
-    "build": "cd bls && make clean && make bls-eth-wasm && yarn run build:lib",
-    "prebuild:lib": "rm -rf dist",
-    "build:lib": "babel bls-eth-wasm -d dist --copy-files",
+    "build": "./build.sh",
     "test": "node dist/test.js",
-    "postinstall": "./apply-dif.sh",
     "update-submodule": "git submodule update"
   },
   "repository": {
