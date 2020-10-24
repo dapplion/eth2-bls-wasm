@@ -16,7 +16,7 @@
     "build": "cd bls && make clean && make bls-eth-wasm && yarn run build:lib",
     "prebuild:lib": "rm -rf dist",
     "build:lib": "babel bls-eth-wasm -d dist --copy-files",
-    "test": "node test.js"
+    "test": "node dist/test.js"
   },
   "repository": {
     "type": "git",
