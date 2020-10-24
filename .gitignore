@@ -3,6 +3,9 @@ node_modules
 .idea
 .vscode
 
+# Build target
+bls-eth-wasm
+
 # Diff target
 bls-eth-wasm-dist
 
