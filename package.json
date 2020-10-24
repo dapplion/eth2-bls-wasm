@@ -17,7 +17,7 @@
     "prebuild:lib": "rm -rf dist",
     "build:lib": "babel bls-eth-wasm -d dist --copy-files",
     "test": "node dist/test.js",
-    "postinstall": "patch-package && cp -r node_modules/@herumi/bls-eth-wasm bls-eth-wasm-modified"
+    "postinstall": "./apply-dif.sh"
   },
   "repository": {
     "type": "git",
