@@ -1,6 +1,17 @@
+// <<<<<<< herumi/bls-eth-wasm
+// =======
 import wasmCode from './bls_c.wasm';
+// >>>>>>> chainsafe/eth2-bls-wasm
 
 (generator => {
+  // <<<<<<< herumi/bls-eth-wasm
+  // if (typeof window === 'object') {
+  //   const exports = {}
+  //   window.bls = generator(exports, false)
+  // } else {
+  //   generator(exports, true)
+  // }
+  // =======
   if (typeof exports === 'object') {
     const crypto = require('crypto')
     crypto.getRandomValues = crypto.randomFillSync
@@ -10,22 +21,32 @@ import wasmCode from './bls_c.wasm';
     const exports = {}
     window.bls = generator(exports, crypto, false)
   }
-})((exports, crypto, isNodeJs) => {
-  /* eslint-disable */
-  exports.BLS12_381 = 5
+  // >>>>>>> chainsafe/eth2-bls-wasm
 
-  const setup = (exports) => {
+// <<<<<<< herumi/bls-eth-wasm
+// })((exports, isNodeJs) => {
+// =======
+})((exports, crypto, isNodeJs) => {
+// >>>>>>> chainsafe/eth2-bls-wasm
+  /* eslint-disable */
+  exports.BN254 = 0
+  exports.BN381_1 = 1
+  exports.BLS12_381 = 5
+  exports.ethMode = true
+  exports.ETH_MODE_DRAFT_05 = 1
+  exports.ETH_MODE_DRAFT_06 = 2
+  exports.ETH_MODE_DRAFT_07 = 3
+
+  const setup = (exports, curveType) => {
     const mod = exports.mod
     const MCLBN_FP_UNIT_SIZE = 6
-    const MCLBN_FR_UNIT_SIZE = 4
-    const BLS_COMPILER_TIME_VAR_ADJ = 200
+    const MCLBN_FR_UNIT_SIZE = exports.ethMode ? 4 : 6
+    const BLS_COMPILER_TIME_VAR_ADJ = exports.ethMode ? 200 : 0
     const MCLBN_COMPILED_TIME_VAR = (MCLBN_FR_UNIT_SIZE * 10 + MCLBN_FP_UNIT_SIZE) + BLS_COMPILER_TIME_VAR_ADJ
     const BLS_ID_SIZE = MCLBN_FR_UNIT_SIZE * 8
     const BLS_SECRETKEY_SIZE = MCLBN_FP_UNIT_SIZE * 8
-    const BLS_PUBLICKEY_SIZE = BLS_SECRETKEY_SIZE * 3
-    const BLS_SIGNATURE_SIZE = BLS_SECRETKEY_SIZE * 3 * 2
-    const MSG_SIZE = 32
-    exports.MSG_SIZE = MSG_SIZE
+    const BLS_PUBLICKEY_SIZE = BLS_SECRETKEY_SIZE * 3 * (exports.ethMode ? 1 : 2)
+    const BLS_SIGNATURE_SIZE = BLS_SECRETKEY_SIZE * 3 * (exports.ethMode ? 2 : 1)
 
     const _malloc = size => {
       return mod._blsMalloc(size)
@@ -74,9 +95,10 @@ import wasmCode from './bls_c.wasm';
 //    }
     }
     const copyFromUint32Array = (pos, a) => {
-      for (let i = 0; i < a.length; i++) {
-        mod.HEAP32[pos / 4 + i] = a[i]
-      }
+      mod.HEAP32.set(a, pos / 4)
+//    for (let i = 0; i < a.length; i++) {
+//      mod.HEAP32[pos / 4 + i] = a[i]
+//    }
     }
 //////////////////////////////////
     const _wrapGetStr = (func, returnAsStr = true) => {
@@ -162,7 +184,7 @@ import wasmCode from './bls_c.wasm';
     }
     const callRecover = (func, a, size, vec, idVec) => {
       const n = vec.length
-      if (n !== idVec.length) throw ('recover:bad length')
+      if (n != idVec.length) throw ('recover:bad length')
       const secPos = a._alloc()
       const vecPos = _malloc(size * n)
       const idVecPos = _malloc(BLS_ID_SIZE * n)
@@ -170,44 +192,59 @@ import wasmCode from './bls_c.wasm';
         copyFromUint32Array(vecPos + size * i, vec[i].a_)
         copyFromUint32Array(idVecPos + BLS_ID_SIZE * i, idVec[i].a_)
       }
-      func(secPos, vecPos, idVecPos, n)
+      const r = func(secPos, vecPos, idVecPos, n)
       _free(idVecPos)
       _free(vecPos)
       a._saveAndFree(secPos)
+      if (r) throw ('callRecover')
     }
 
     // change curveType
-    exports.blsInit = () => {
-      const r = mod._blsInit(exports.BLS12_381, MCLBN_COMPILED_TIME_VAR)
+    exports.blsInit = (curveType = exports.ethMode ? exports.BLS12_381 : exports.BN254) => {
+      const r = mod._blsInit(curveType, MCLBN_COMPILED_TIME_VAR)
       if (r) throw ('blsInit err ' + r)
 
+      // <<<<<<< herumi/bls-eth-wasm
+      // =======
       //https://github.com/herumi/bls/blob/master/include/bls/bls.h#L106
       const r2 = mod._blsSetETHmode(3);
       if (r2) throw ('blsSetEthMode err ' + r2)
+      // >>>>>>> chainsafe/eth2-bls-wasm
     }
     exports.getCurveOrder = _wrapGetStr(mod._blsGetCurveOrder)
     exports.getFieldOrder = _wrapGetStr(mod._blsGetFieldOrder)
 
+    exports.blsIdSetDecStr = _wrapInput(mod._blsIdSetDecStr, 1)
+    exports.blsIdSetHexStr = _wrapInput(mod._blsIdSetHexStr, 1)
+    exports.blsIdGetDecStr = _wrapGetStr(mod._blsIdGetDecStr)
+    exports.blsIdGetHexStr = _wrapGetStr(mod._blsIdGetHexStr)
+
+    exports.blsIdSerialize = _wrapSerialize(mod._blsIdSerialize)
+    exports.blsSecretKeySerialize = _wrapSerialize(mod._blsSecretKeySerialize)
+    exports.blsPublicKeySerialize = _wrapSerialize(mod._blsPublicKeySerialize)
+    exports.blsSignatureSerialize = _wrapSerialize(mod._blsSignatureSerialize)
+
+    exports.blsIdDeserialize = _wrapDeserialize(mod._blsIdDeserialize)
+    exports.blsSecretKeyDeserialize = _wrapDeserialize(mod._blsSecretKeyDeserialize)
+    exports.blsPublicKeyDeserialize = _wrapDeserialize(mod._blsPublicKeyDeserialize)
+    exports.blsSignatureDeserialize = _wrapDeserialize(mod._blsSignatureDeserialize)
+
+    exports.blsPublicKeySerializeUncompressed = _wrapSerialize(mod._blsPublicKeySerializeUncompressed)
+    exports.blsSignatureSerializeUncompressed = _wrapSerialize(mod._blsSignatureSerializeUncompressed)
+    exports.blsPublicKeyDeserializeUncompressed = _wrapDeserialize(mod._blsPublicKeyDeserializeUncompressed)
+    exports.blsSignatureDeserializeUncompressed = _wrapDeserialize(mod._blsSignatureDeserializeUncompressed)
+
+    exports.blsSecretKeySetLittleEndian = _wrapInput(mod._blsSecretKeySetLittleEndian, 1)
+    exports.blsSecretKeySetLittleEndianMod = _wrapInput(mod._blsSecretKeySetLittleEndianMod, 1)
+    exports.blsHashToSecretKey = _wrapInput(mod._blsHashToSecretKey, 1)
+    exports.blsSign = _wrapInput(mod._blsSign, 2)
+    exports.blsVerify = _wrapInput(mod._blsVerify, 2, true)
+
+    // <<<<<<< herumi/bls-eth-wasm
+    // =======
     exports.shouldVerifyBlsSignatureOrder = _wrapInput(mod._blsSignatureVerifyOrder, 0);
     exports.shouldVerifyBlsPublicKeyOrder = _wrapInput(mod._blsPublicKeyVerifyOrder, 0);
-
-    mod.blsSecretKeySerialize = _wrapSerialize(mod._blsSecretKeySerialize)
-    mod.blsPublicKeySerialize = _wrapSerialize(mod._blsPublicKeySerialize)
-    mod.blsSignatureSerialize = _wrapSerialize(mod._blsSignatureSerialize)
-
-    mod.blsSecretKeyDeserialize = _wrapDeserialize(mod._blsSecretKeyDeserialize)
-    mod.blsPublicKeyDeserialize = _wrapDeserialize(mod._blsPublicKeyDeserialize)
-    mod.blsSignatureDeserialize = _wrapDeserialize(mod._blsSignatureDeserialize)
-
-    mod.blsPublicKeySerializeUncompressed = _wrapSerialize(mod._blsPublicKeySerializeUncompressed)
-    mod.blsSignatureSerializeUncompressed = _wrapSerialize(mod._blsSignatureSerializeUncompressed)
-    mod.blsPublicKeyDeserializeUncompressed = _wrapDeserialize(mod._blsPublicKeyDeserializeUncompressed)
-    mod.blsSignatureDeserializeUncompressed = _wrapDeserialize(mod._blsSignatureDeserializeUncompressed)
-
-    mod.blsSecretKeySetLittleEndian = _wrapInput(mod._blsSecretKeySetLittleEndian, 1)
-    mod.blsHashToSecretKey = _wrapInput(mod._blsHashToSecretKey, 1)
-    mod.blsSign = _wrapInput(mod._blsSign, 2)
-    mod.blsVerify = _wrapInput(mod._blsVerify, 2, true)
+    // >>>>>>> chainsafe/eth2-bls-wasm
 
     class Common {
       constructor (size) {
@@ -225,12 +262,14 @@ import wasmCode from './bls_c.wasm';
       clear () {
         this.a_.fill(0)
       }
-
+      // <<<<<<< herumi/bls-eth-wasm
+      // =======
       clone() {
         const copy = new this.constructor();
         copy.a_ = this.a_.slice(0);
         return copy;
       }
+      // >>>>>>> chainsafe/eth2-bls-wasm
       // alloc new array
       _alloc () {
         return _malloc(this.a_.length * 4)
@@ -299,10 +338,65 @@ import wasmCode from './bls_c.wasm';
         const xPos = this._allocAndCopy()
         const yPos = y._allocAndCopy()
         func(xPos, yPos)
-        this._saveAndFree(xPos)
         _free(yPos)
-        _free(xPos)
+        this._saveAndFree(xPos)
       }
+    }
+
+    exports.Id = class extends Common {
+      constructor () {
+        super(BLS_ID_SIZE)
+      }
+      setInt (x) {
+        this._setter(mod._blsIdSetInt, x)
+      }
+      isEqual (rhs) {
+        return this._isEqual(mod._blsIdIsEqual, rhs)
+      }
+      deserialize (s) {
+        this._setter(exports.blsIdDeserialize, s)
+      }
+      serialize () {
+        return this._getter(exports.blsIdSerialize)
+      }
+      setStr (s, base = 10) {
+        switch (base) {
+          case 10:
+            this._setter(exports.blsIdSetDecStr, s)
+            return
+          case 16:
+            this._setter(exports.blsIdSetHexStr, s)
+            return
+          default:
+            throw ('BlsId.setStr:bad base:' + base)
+        }
+      }
+      getStr (base = 10) {
+        switch (base) {
+          case 10:
+            return this._getter(exports.blsIdGetDecStr)
+          case 16:
+            return this._getter(exports.blsIdGetHexStr)
+          default:
+            throw ('BlsId.getStr:bad base:' + base)
+        }
+      }
+      setLittleEndian (s) {
+        this._setter(exports.blsSecretKeySetLittleEndian, s)
+      }
+      setLittleEndianMod (s) {
+        this._setter(exports.blsSecretKeySetLittleEndianMod, s)
+      }
+      setByCSPRNG () {
+        const a = new Uint8Array(BLS_ID_SIZE)
+        exports.getRandomValues(a)
+        this.setLittleEndian(a)
+      }
+    }
+    exports.deserializeHexStrToId = s => {
+      const r = new exports.Id()
+      r.deserializeHexStr(s)
+      return r
     }
 
     exports.SecretKey = class extends Common {
@@ -312,14 +406,17 @@ import wasmCode from './bls_c.wasm';
       setInt (x) {
         this._setter(mod._blsIdSetInt, x) // same as Id
       }
+      isZero () {
+        return this._getter(mod._blsSecretKeyIsZero) === 1
+      }
       isEqual (rhs) {
         return this._isEqual(mod._blsSecretKeyIsEqual, rhs)
       }
       deserialize (s) {
-        this._setter(mod.blsSecretKeyDeserialize, s)
+        this._setter(exports.blsSecretKeyDeserialize, s)
       }
       serialize () {
-        return this._getter(mod.blsSecretKeySerialize)
+        return this._getter(exports.blsSecretKeySerialize)
       }
       add (rhs) {
         this._update(mod._blsSecretKeyAdd, rhs)
@@ -331,14 +428,21 @@ import wasmCode from './bls_c.wasm';
         callRecover(mod._blsSecretKeyRecover, this, BLS_SECRETKEY_SIZE, secVec, idVec)
       }
       setHashOf (s) {
-        this._setter(mod.blsHashToSecretKey, s)
+        this._setter(exports.blsHashToSecretKey, s)
       }
       setLittleEndian (s) {
-        this._setter(mod.blsSecretKeySetLittleEndian, s)
+        this._setter(exports.blsSecretKeySetLittleEndian, s)
+      }
+      setLittleEndianMod (s) {
+        this._setter(exports.blsSecretKeySetLittleEndianMod, s)
       }
       setByCSPRNG () {
         const a = new Uint8Array(BLS_SECRETKEY_SIZE)
+        // <<<<<<< herumi/bls-eth-wasm
+        // exports.getRandomValues(a)
+        // =======
         crypto.getRandomValues(a)
+        // >>>>>>> chainsafe/eth2-bls-wasm
         this.setLittleEndian(a)
       }
       getPublicKey () {
@@ -360,26 +464,7 @@ import wasmCode from './bls_c.wasm';
         const sig = new exports.Signature()
         const secPos = this._allocAndCopy()
         const sigPos = sig._alloc()
-        mod.blsSign(sigPos, secPos, m)
-        sig._saveAndFree(sigPos)
-        _free(secPos)
-        return sig
-      }
-      /*
-        input
-        m : message (40 bytes Uint8Array)
-        return
-        BlsSignature
-      */
-      signHashWithDomain (m) {
-        if (m.length !== MSG_SIZE) throw new Error(`bad size message:${m.length}`)
-        const sig = new exports.Signature()
-        const secPos = this._allocAndCopy()
-        const sigPos = sig._alloc()
-        const mPos = _malloc(MSG_SIZE)
-        mod.HEAP8.set(m, mPos)
-        mod._blsSignHashWithDomain(sigPos, secPos, mPos)
-        _free(mPos)
+        exports.blsSign(sigPos, secPos, m)
         sig._saveAndFree(sigPos)
         _free(secPos)
         return sig
@@ -395,29 +480,23 @@ import wasmCode from './bls_c.wasm';
       constructor () {
         super(BLS_PUBLICKEY_SIZE)
       }
+      isZero () {
+        return this._getter(mod._blsPublicKeyIsZero) === 1
+      }
       isEqual (rhs) {
         return this._isEqual(mod._blsPublicKeyIsEqual, rhs)
       }
       deserialize (s) {
-        this._setter(mod.blsPublicKeyDeserialize, s)
-      }
-      deserializeUncompressed (s) {
-        this._setter(mod.blsPublicKeyDeserializeUncompressed, s)
+        this._setter(exports.blsPublicKeyDeserialize, s)
       }
       serialize () {
-        return this._getter(mod.blsPublicKeySerialize)
+        return this._getter(exports.blsPublicKeySerialize)
+      }
+      deserializeUncompressed (s) {
+        this._setter(exports.blsPublicKeyDeserializeUncompressed, s)
       }
       serializeUncompressed () {
-        return this._getter(mod.blsPublicKeySerializeUncompressed)
-      }
-      deserializeUncompressedHexStr (s) {
-        this.deserializeUncompressed(exports.fromHexStr(s))
-      }
-      serializeUncompressedToHexStr () {
-        return exports.toHexStr(this.serializeUncompressed())
-      }
-      isValidOrder () {
-        return this._getter(mod._blsPublicKeyIsValidOrder)
+        return this._getter(exports.blsPublicKeySerializeUncompressed)
       }
       add (rhs) {
         this._update(mod._blsPublicKeyAdd, rhs)
@@ -428,25 +507,16 @@ import wasmCode from './bls_c.wasm';
       recover (secVec, idVec) {
         callRecover(mod._blsPublicKeyRecover, this, BLS_PUBLICKEY_SIZE, secVec, idVec)
       }
+      isValidOrder () {
+        return this._getter(mod._blsPublicKeyIsValidOrder)
+      }
       verify (sig, m) {
         const pubPos = this._allocAndCopy()
         const sigPos = sig._allocAndCopy()
-        const r = mod.blsVerify(sigPos, pubPos, m)
+        const r = exports.blsVerify(sigPos, pubPos, m)
         _free(sigPos)
         _free(pubPos)
-        return r !== 0
-      }
-      verifyHashWithDomain (sig, m) {
-        if (m.length !== MSG_SIZE) return false
-        const pubPos = this._allocAndCopy()
-        const sigPos = sig._allocAndCopy()
-        const mPos = _malloc(MSG_SIZE)
-        mod.HEAP8.set(m, mPos)
-        const r = mod._blsVerifyHashWithDomain(sigPos, pubPos, mPos)
-        _free(mPos)
-        _free(sigPos)
-        _free(pubPos)
-        return r !== 0
+        return r != 0
       }
     }
     exports.deserializeHexStrToPublicKey = s => {
@@ -454,45 +524,37 @@ import wasmCode from './bls_c.wasm';
       r.deserializeHexStr(s)
       return r
     }
-    exports.deserializeUncompressedHexStrToPublicKey = s => {
-      const r = new exports.PublicKey()
-      r.deserializeUncompressedHexStr(s)
-      return r
-    }
 
     exports.Signature = class extends Common {
       constructor () {
         super(BLS_SIGNATURE_SIZE)
       }
+      isZero () {
+        return this._getter(mod._blsSignatureIsZero) === 1
+      }
       isEqual (rhs) {
         return this._isEqual(mod._blsSignatureIsEqual, rhs)
       }
       deserialize (s) {
-        this._setter(mod.blsSignatureDeserialize, s)
-      }
-      deserializeUncompressed (s) {
-        this._setter(mod.blsSignatureDeserializeUncompressed, s)
+        this._setter(exports.blsSignatureDeserialize, s)
       }
       serialize () {
-        return this._getter(mod.blsSignatureSerialize)
+        return this._getter(exports.blsSignatureSerialize)
+      }
+      deserializeUncompressed (s) {
+        this._setter(exports.blsSignatureDeserializeUncompressed, s)
       }
       serializeUncompressed () {
-        return this._getter(mod.blsSignatureSerializeUncompressed)
-      }
-      deserializeUncompressedHexStr (s) {
-        this.deserializeUncompressed(exports.fromHexStr(s))
-      }
-      serializeUncompressedToHexStr () {
-        return exports.toHexStr(this.serializeUncompressed())
-      }
-      isValidOrder () {
-        return this._getter(mod._blsSignatureIsValidOrder)
+        return this._getter(exports.blsSignatureSerializeUncompressed)
       }
       add (rhs) {
         this._update(mod._blsSignatureAdd, rhs)
       }
       recover (secVec, idVec) {
         callRecover(mod._blsSignatureRecover, this, BLS_SIGNATURE_SIZE, secVec, idVec)
+      }
+      isValidOrder () {
+        return this._getter(mod._blsSignatureIsValidOrder)
       }
       // this = aggSig
       aggregate (sigVec) {
@@ -505,9 +567,8 @@ import wasmCode from './bls_c.wasm';
         const r = mod._blsAggregateSignature(aggSigPos, sigVecPos, n)
         _free(sigVecPos)
         this._saveAndFree(aggSigPos)
-        return r === 1
+        return r == 1
       }
-
       // this = aggSig
       fastAggregateVerify (pubVec, msg) {
         const n = pubVec.length
@@ -523,14 +584,14 @@ import wasmCode from './bls_c.wasm';
         _free(msgPos)
         _free(pubVecPos)
         _free(aggSigPos)
-        return r === 1
+        return r == 1
       }
-
       // this = aggSig
       // msgVec = (32 * pubVec.length)-size Uint8Array
       aggregateVerifyNoCheck (pubVec, msgVec) {
         const n = pubVec.length
-        if (n === 0 || msgVec.length !== MSG_SIZE * n) {
+        const msgSize = 32
+        if (n == 0 || msgVec.length != msgSize * n) {
           return false
         }
         const aggSigPos = this._allocAndCopy()
@@ -540,17 +601,21 @@ import wasmCode from './bls_c.wasm';
           mod.HEAP32.set(pubVec[i].a_, (pubVecPos + BLS_PUBLICKEY_SIZE * i) / 4)
         }
         mod.HEAP8.set(msgVec, msgPos)
-        const r = mod._blsAggregateVerifyNoCheck(aggSigPos, pubVecPos, msgPos, MSG_SIZE, n)
+        const r = mod._blsAggregateVerifyNoCheck(aggSigPos, pubVecPos, msgPos, msgSize, n)
         _free(msgPos)
         _free(pubVecPos)
         _free(aggSigPos)
-        return r === 1
+        return r == 1
       }
     }
     exports.deserializeHexStrToSignature = s => {
       const r = new exports.Signature()
       r.deserializeHexStr(s)
       return r
+    }
+    // 1 (draft-05) 2 (draft-06) 3 (draft-07)
+    exports.setETHmode = (mode) => {
+      if (mod._blsSetETHmode(mode) != 0) throw new Error(`bad setETHmode ${mode}`)
     }
     // make setter check the correctness of the order if doVerify
     exports.verifySignatureOrder = (doVerify) => {
@@ -560,10 +625,10 @@ import wasmCode from './bls_c.wasm';
     exports.verifyPublicKeyOrder = (doVerify) => {
       mod._blsPublicKeyVerifyOrder(doVerify)
     }
-    exports.areAllMsgDifferent = (msgs, msgSize = MSG_SIZE) => {
+    exports.areAllMsgDifferent = (msgs, msgSize) => {
       const n = msgs.length / msgSize
-      if (msgs.length !== n * msgSize) return false
-      const h = {}
+      if (msgs.length != n * msgSize) return false
+      h = {}
       for (let i = 0; i < n; i++) {
         const m = msgs.subarray(i * msgSize, (i + 1) * msgSize)
         if (m in h) return false
@@ -571,18 +636,91 @@ import wasmCode from './bls_c.wasm';
       }
       return true
     }
-    exports.blsInit()
+    /*
+      return true if all pub[i].verify(sigs[i], msgs[i])
+      msgs is array of 32-byte Uint8Array
+    */
+    exports.multiVerify = (pubs, sigs, msgs) => {
+      const MSG_SIZE = 32
+      const RAND_SIZE = 8 // 64-bit rand
+      const threadNum = 0 // not used
+      const n = sigs.length
+      if (pubs.length != n || msgs.length != n) return false
+      for (let i = 0; i < n; i++) {
+        if (msgs[i].length != MSG_SIZE) return false
+      }
+      const sigPos = _malloc(BLS_SIGNATURE_SIZE * n)
+      const pubPos = _malloc(BLS_PUBLICKEY_SIZE * n)
+      const msgPos = _malloc(MSG_SIZE * n)
+      const randPos = _malloc(RAND_SIZE * n)
+
+      exports.getRandomValues(mod.HEAP8.subarray(randPos, randPos + RAND_SIZE * n))
+      for (let i = 0; i < n; i++) {
+        mod.HEAP32.set(sigs[i].a_, (sigPos + BLS_SIGNATURE_SIZE * i) / 4)
+        mod.HEAP32.set(pubs[i].a_, (pubPos + BLS_PUBLICKEY_SIZE * i) / 4)
+        mod.HEAP8.set(msgs[i], msgPos + MSG_SIZE * i)
+      }
+      const r = mod._blsMultiVerify(sigPos, pubPos, msgPos, MSG_SIZE, randPos, RAND_SIZE, n, threadNum)
+
+      _free(randPos)
+      _free(msgPos)
+      _free(pubPos)
+      _free(sigPos)
+      return r == 1
+    }
+    exports.blsInit(curveType)
+    if (exports.ethMode) {
+      exports.setETHmode(exports.ETH_MODE_DRAFT_07)
+    }
   } // setup()
   const _cryptoGetRandomValues = function(p, n) {
     const a = new Uint8Array(n)
-    crypto.getRandomValues(a)
+    exports.getRandomValues(a)
     for (let i = 0; i < n; i++) {
       exports.mod.HEAP8[p + i] = a[i]
     }
   }
-  exports.init = () => {
-    exports.curveType = exports.BLS12_381
+  // f(a:array) fills a with random value
+  exports.setRandFunc = f => {
+    exports.getRandomValues = f
+  }
+  exports.init = (curveType = exports.BN254) => {
+    exports.curveType = curveType
     const name = 'bls_c'
+    // <<<<<<< herumi/bls-eth-wasm
+    // return new Promise(resolve => {
+    //   if (isNodeJs) {
+    //     const crypto = require('crypto')
+    //     exports.getRandomValues = crypto.randomFillSync
+    //     const path = require('path')
+    //     const js = require(`./${name}.js`)
+    //     const Module = {
+    //       cryptoGetRandomValues : _cryptoGetRandomValues,
+    //       locateFile: baseName => { return path.join(__dirname, baseName) }
+    //     }
+    //     js(Module)
+    //       .then(_mod => {
+    //         exports.mod = _mod
+    //         setup(exports, curveType)
+    //         resolve()
+    //       })
+    //   } else {
+    //     const crypto = window.crypto || window.msCrypto
+    //     exports.getRandomValues = x => crypto.getRandomValues(x)
+    //     fetch(`./${name}.wasm`) // eslint-disable-line
+    //       .then(response => response.arrayBuffer())
+    //       .then(buffer => new Uint8Array(buffer))
+    //       .then(() => {
+    //         exports.mod = Module() // eslint-disable-line
+    //         exports.mod.cryptoGetRandomValues = _cryptoGetRandomValues
+    //         exports.mod.onRuntimeInitialized = () => {
+    //           setup(exports, curveType)
+    //           resolve()
+    //         }
+    //       })
+    //   }
+    // })
+    // =======
     return new Promise(resolve => {
       const wasmBinary = Buffer.from(wasmCode, "binary");
       try {
@@ -607,7 +745,7 @@ import wasmCode from './bls_c.wasm';
         }
       }
     })
+    // >>>>>>> chainsafe/eth2-bls-wasm
   }
-
   return exports
 })
