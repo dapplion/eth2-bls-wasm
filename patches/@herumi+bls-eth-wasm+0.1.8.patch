@@ -94,14 +94,10 @@ index 51ac539..845cd46 100644
      })
    }
 diff --git a/node_modules/@herumi/bls-eth-wasm/test.js b/node_modules/@herumi/bls-eth-wasm/test.js
-index 3322279..ee3113a 100644
+index 3322279..91c64e3 100644
 --- a/node_modules/@herumi/bls-eth-wasm/test.js
 +++ b/node_modules/@herumi/bls-eth-wasm/test.js
-@@ -17,10 +17,11 @@ const curveTest = (curveType, name) => {
-         shareTest()
-         addTest()
-         ethTest()
-+        serializeUncompressedTest()
+@@ -20,7 +20,7 @@ const curveTest = (curveType, name) => {
          console.log('all ok')
          benchAll()
        } catch (e) {
@@ -110,20 +106,3 @@ index 3322279..ee3113a 100644
          assert(false)
        }
      })
-@@ -63,6 +64,16 @@ function serializeTest () {
-   serializeSubTest(id, bls.Id)
- }
- 
-+function serializeUncompressedTest () {
-+  const sec = new bls.SecretKey()
-+  sec.setByCSPRNG()
-+  const pub = sec.getPublicKey()
-+  serializeUncompressedSubTest(pub, bls.PublicKey)
-+  const msg = 'abc'
-+  const sig = sec.sign(msg)
-+  serializeUncompressedSubTest(sig, bls.Signature)
-+}
-+
- function zeroTest () {
-   let sec = new bls.SecretKey()
-   assert(sec.isZero())
