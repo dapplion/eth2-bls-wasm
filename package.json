@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "./build.sh",
-    "test": "node bls-eth-wasm/test.js",
+    "test": "cd bls-eth-wasm && node test.js",
     "update-submodule": "git submodule update"
   },
   "repository": {
