@@ -7,7 +7,14 @@ yarn-error.log
 bls-eth-wasm/
 
 # Diff target
-dist/
+dist/.travis.yml
+dist/bench.js
+dist/bls-demo.html
+dist/bls-demo.js
+dist/package.json
+dist/readme.md
+dist/test.js
+dist/test/
 
 # EMCC build files
 bls-eth-wasm*/bls_c.js
