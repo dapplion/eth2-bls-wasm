@@ -9,11 +9,11 @@
     "Chainsafe Systems"
   ],
   "files": [
-    "bls-eth-wasm"
+    "dist"
   ],
   "scripts": {
     "build": "./build.sh",
-    "test": "cd bls-eth-wasm && node test.js",
+    "test": "cd dist && node test.js",
     "update-submodule": "git submodule update"
   },
   "repository": {

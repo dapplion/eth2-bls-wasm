@@ -3,11 +3,11 @@
 coverage/
 
 # herumi/bls-eth-wasm artifacts
-bls-eth-wasm/.travis.yml
-bls-eth-wasm/bench.js
-bls-eth-wasm/bls-demo.html
-bls-eth-wasm/bls-demo.js
-bls-eth-wasm/package.json
-bls-eth-wasm/readme.md
-bls-eth-wasm/test.js
-bls-eth-wasm/test/
+dist/.travis.yml
+dist/bench.js
+dist/bls-demo.html
+dist/bls-demo.js
+dist/package.json
+dist/readme.md
+dist/test.js
+dist/test/
