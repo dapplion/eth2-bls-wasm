@@ -1,6 +1,7 @@
 node_modules
 .idea
 .vscode
+yarn-error.log
 
 # Build target
 bls-eth-wasm/

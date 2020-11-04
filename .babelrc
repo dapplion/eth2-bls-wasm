@@ -12,13 +12,6 @@
         ]
       }
     ]
-  ],
-  "plugins": [
-    ["@chainsafe/babel-plugin-inline-binary-import", {
-      "extensions": [
-        ".wasm"
-      ]
-    }]
   ]
 }
 

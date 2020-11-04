@@ -9,13 +9,12 @@
     "Chainsafe Systems"
   ],
   "files": [
-    "dist"
+    "bls-eth-wasm"
   ],
   "scripts": {
     "build": "./build.sh",
-    "test": "node dist/test.js",
-    "update-submodule": "git submodule update",
-    "update-diff": "yarn patch-package @herumi/bls-eth-wasm"
+    "test": "node bls-eth-wasm/test.js",
+    "update-submodule": "git submodule update"
   },
   "repository": {
     "type": "git",
@@ -39,10 +38,7 @@
     "@babel/cli": "^7.7.5",
     "@babel/core": "^7.7.5",
     "@babel/preset-env": "^7.7.6",
-    "@chainsafe/babel-plugin-inline-binary-import": "^1.0.3",
-    "@herumi/bls-eth-wasm": "file:./bls-eth-wasm-upstream",
     "assert": "^2.0.0",
-    "patch-package": "^6.2.2",
     "standard": "^10.0.3"
   },
   "dependencies": {
