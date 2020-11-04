@@ -91,7 +91,7 @@ export enum CurveType {
     BLS12_381 = 5,
 }
 
-export const BN254 = CurveType.BN254;;
+export const BN254 = CurveType.BN254;
 export const BN381_1 = CurveType.BN381_1;
 export const BLS12_381 = CurveType.BLS12_381;
 export const ethMode = true;
