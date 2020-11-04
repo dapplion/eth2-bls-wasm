@@ -17,4 +17,5 @@ cd bls && make clean && make bls-eth-wasm && cd ..
 cp types/* bls-eth-wasm/
 
 # Rename dir to dist for publishing to NPM
+rm -rf dist/
 cp -r -T bls-eth-wasm/ dist/
